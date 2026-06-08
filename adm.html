@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebRequest | Painel Administrativo</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background:#0d0e12; color:#e2e8f0; padding:20px; display:flex; justify-content:center; }
+.container-painel { width:100%; max-width:1200px; }
+h1,h2,h3 { color:#f8fafc; }
+h1 { text-align:center; margin-bottom:30px; font-size:28px; color:#0e639c; }
+.grid-admin { display:grid; grid-template-columns:1fr; gap:20px; }
+@media(min-width:768px){ .grid-admin { grid-template-columns:2fr 1fr; } }
+.card { background:#18181c; border:1px solid #2d2d34; padding:25px; border-radius:12px; margin-bottom:20px; }
+.card h2 { font-size:18px; margin-bottom:20px; color:#9cdcfe; border-bottom: 1px solid #2d2d34; padding-bottom:10px; }
+
+.pedido-box { background:#111115; border:1px solid #2d2d34; padding:20px; border-radius:8px; margin-bottom:15px; }
+.pedido-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.pedido-id { font-family:monospace; color:#ce9178; font-weight:bold; }
+.pedido-status { padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; text-transform:uppercase; }
+
+.status-aguardando { background:#d7ba7d; color:#111; }
+.status-aprovado { background:#4ec9b0; color:#111; }
+.status-recusado { background:#f44747; color:#fff; }
+.status-em_producao { background:#3794ff; color:#fff; }
+.status-finalizado { background:#b5cea8; color:#111; }
+
+.pedido-dados p { margin:6px 0; font-size:14px; line-height:1.5; }
+.pedido-dados strong { color:#94a3b8; }
+
+.acoes-flex { display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; border-top: 1px solid #2d2d34; padding-top:15px; }
+.btn-acao { border:none; padding:8px 12px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px; color:#fff; transition:.2s; }
+.btn-acao:hover { opacity:.8; }
+.btn-aprovar { background:#33a852; }
+.btn-recusar { background:#ea4335; }
+.btn-producao { background:#0e639c; }
+.btn-finalizar { background:#a442f5; }
+
+.campo-grupo { margin-bottom:15px; }
+label { display:block; margin-bottom:6px; font-size:13px; color:#9cdcfe; font-family:monospace; }
+input { width:100%; padding:10px; background:#1e1e24; border:1px solid #3e3e42; border-radius:6px; color:#fff; outline:none; }
+.btn-comando { width:100%; background:#0e639c; color:white; border:none; padding:12px; font-size:14px; border-radius:6px; cursor:pointer; font-weight:bold; margin-top:10px; }
+.switch-container { display:flex; align-items:center; justify-content:space-between; background:#111115; padding:12px; border-radius:6px; border:1px solid #2d2d34; }
+.switch { position:relative; display:inline-block; width:50px; height:26px; }
+.switch input { opacity:0; width:0; height:0; }
+.slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#3e3e42; transition:.3s; border-radius:34px; }
+.slider:before { position:absolute; content:""; height:18px; width:18px; left:4px; bottom:4px; background:white; transition:.3s; border-radius:50%; }
+input:checked + .slider { background:#f44747; }
+input:checked + .slider:before { transform:translateX(24px); }
+</style>
+</head>
+<body>
+
+<div class="container-painel">
+    <h1>🚀 Painel Administrativo | WebRequest</h1>
+    <div class="grid-admin">
+        
+        <section>
+            <div class="card">
+                <h2>📥 Chamados e Pedidos</h2>
+                <div id="listaPedidosAPI">
+                    <p style="text-align:center; color:#64748b; font-size:14px;">Aguardando pedidos...</p>
+                </div>
+            </div>
+        </section>
+
+        <aside>
+            <div class="card">
+                <h2>⏱️ Controle do Cronômetro</h2>
+                <div class="campo-grupo">
+                    <label>Tempo de Production (Minutos)</label>
+                    <input type="number" id="timerInput" placeholder="30" value="30">
+                </div>
+                <button class="btn-comando" onclick="dispararCronometro()">Iniciar Cronômetro</button>
+                <button class="btn-comando" style="background:#3e3e42" onclick="limparCronometro()">Limpar Cronômetros</button>
+            </div>
+
+            <div class="card">
+                <h2>🚨 Controle do Sistema</h2>
+                <div class="switch-container">
+                    <span>Modo Manutenção</span>
+                    <label class="switch">
+                        <input type="checkbox" id="manutencaoCheck" onchange="alternarManutencaoPainel()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<script>
+    // DETECÇÃO AUTOMÁTICA DA URL (Localhost vs Render)
+    const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3000"
+        : "https://SEU-BACKEND.onrender.com"; // Troque aqui pelo link real da Render após o deploy
+
+    const API_URL = `${API_BASE}/api/pedidos`;
+
+    // Função para buscar e renderizar os pedidos da API
+    async function carregarPedidosNoPainel(){
+        try {
+            const resposta = await fetch(API_URL);
+            const pedidos = await resposta.json();
+            const container = document.getElementById("listaPedidosAPI");
+
+            if(!pedidos.length){
+                container.innerHTML = `<p style="text-align:center; color:#64748b; font-size:14px;">Nenhum pedido encontrado.</p>`;
+                return;
+            }
+
+            container.innerHTML = "";
+            [...pedidos].reverse().forEach(pedido => {
+                container.innerHTML += `
+                    <div class="pedido-box">
+                        <div class="pedido-header">
+                            <span class="pedido-id">${pedido.pedidoId}</span>
+                            <span class="pedido-status status-${pedido.status}">${pedido.status.replace("_"," ").toUpperCase()}</span>
+                        </div>
+                        <div class="pedido-dados">
+                            <p><strong>Cliente:</strong> ${pedido.nome} (${pedido.email})</p>
+                            <p><strong>Projeto:</strong> ${pedido.tipoSite}</p>
+                            <p><strong>Pagamento:</strong> ${pedido.pagamento?.toUpperCase() || "NÃO INFORMADO"}</p>
+                            <p><strong>Descrição:</strong> ${pedido.descricao}</p>
+                        </div>
+                        <div class="acoes-flex">
+                            <button class="btn-acao btn-aprovar" onclick="atualizarStatusPedido('${pedido.pedidoId}', 'aprovado')">Aprovar</button>
+                            <button class="btn-acao btn-producao" onclick="atualizarStatusPedido('${pedido.pedidoId}', 'em_producao')">Produção</button>
+                            <button class="btn-acao btn-finalizar" onclick="atualizarStatusPedido('${pedido.pedidoId}', 'finalizado')">Finalizar</button>
+                            <button class="btn-acao btn-recusar" onclick="atualizarStatusPedido('${pedido.pedidoId}', 'recusado')">Recusar</button>
+                        </div>
+                    </div>
+                `;
+            });
+        } catch(erro) {
+            console.error("Erro ao carregar dados da API:", erro);
+        }
+    }
+
+    // Altera o status do pedido via requisição PATCH na API
+    async function atualizarStatusPedido(id, novoStatus){
+        try {
+            const resposta = await fetch(`${API_URL}/${id}/status`, {
+                method:"PATCH",
+                headers:{ "Content-Type": "application/json" },
+                body:JSON.stringify({ status:novoStatus })
+            });
+            const dados = await resposta.json();
+            if(dados.success){
+                carregarPedidosNoPainel();
+            }
+        } catch(erro) {
+            alert("Não foi possível atualizar. O servidor está online?");
+        }
+    }
+
+    // Gerenciador do Cronômetro local
+    function dispararCronometro(){
+        const minutos = parseInt(document.getElementById("timerInput").value) || 30;
+        const fim = Date.now() + (minutos * 60 * 1000);
+        localStorage.setItem("timer_fim_timestamp", fim);
+        window.dispatchEvent(new Event('storage'));
+        alert(`Cronômetro de ${minutos} min iniciado!`);
+    }
+
+    function limparCronometro(){
+        localStorage.removeItem("timer_fim_timestamp");
+        window.dispatchEvent(new Event('storage'));
+        alert("Cronômetros limpos com sucesso.");
+    }
+
+    // Gerenciador do Modo Manutenção local
+    function alternarManutencaoPainel(){
+        const check = document.getElementById("manutencaoCheck");
+        localStorage.setItem("modoManutencao", check.checked ? "ativado" : "desativado");
+        window.dispatchEvent(new Event('storage'));
+    }
+
+    function sincronizarChaves(){
+        const modo = localStorage.getItem("modoManutencao") || "desativado";
+        document.getElementById("manutencaoCheck").checked = modo === "ativado";
+    }
+
+    // Inicialização e loop de atualização em segundo plano
+    window.addEventListener("DOMContentLoaded", () => {
+        sincronizarChaves();
+        carregarPedidosNoPainel();
+        
+        setInterval(async () => {
+            if(!document.hidden){
+                await carregarPedidosNoPainel();
+            }
+        }, 3000); // Atualiza os dados a cada 3 segundos na tela do admin
+    });
+</script>
+</body>
+</html>

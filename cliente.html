@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRequest | Cliente</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0d0e12; color: #e2e8f0; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; box-sizing: border-box; }
+        .container { background: #18181c; border: 1px solid #2d2d34; padding: 30px; border-radius: 12px; width: 100%; max-width: 650px; box-sizing: border-box; margin-bottom: 20px; }
+        h1, h2, h3 { color: #f8fafc; text-align: center; }
+        label { display: block; margin-top: 15px; margin-bottom: 6px; color: #9cdcfe; font-family: monospace; }
+        input, select, textarea { width: 100%; padding: 10px 14px; background: #1e1e24; border: 1px solid #3e3e42; border-radius: 6px; box-sizing: border-box; color: #ce9178; outline: none; }
+        textarea { resize: vertical; height: 80px; color: #d4d4d4; }
+        button { margin-top: 20px; width: 100%; background: #0e639c; color: white; border: none; padding: 12px; font-size: 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        .info-bloco { background: #111115; border: 1px solid #2d2d34; padding: 15px; border-radius: 6px; margin-top: 15px; font-size: 13px; color: #94a3b8; line-height: 1.6; }
+        
+        .tela-fixa { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 14, 18, 0.95); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .modal { background: #18181c; border: 1px solid #2d2d34; padding: 30px; border-radius: 12px; text-align: center; max-width: 500px; width: 100%; }
+        
+        .abas-pagamento { display: flex; gap: 10px; margin: 20px 0; }
+        .aba-btn { flex: 1; padding: 12px; background: #1e1e24; border: 1px solid #3e3e42; color: #e2e8f0; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .aba-btn.ativo { background: #0e639c; border-color: #007acc; }
+        .conteudo-pagamento { display: none; background: #111115; padding: 20px; border-radius: 6px; border: 1px solid #2d2d34; margin-bottom: 20px; }
+        
+        #manutencao-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #007acc; color: white; padding-top: 200px; text-align: center; font-size: 26px; font-family: monospace; z-index: 2000; }
+
+        .chat-widget { position: fixed; bottom: 20px; right: 20px; z-index: 3000; font-family: sans-serif; }
+        .chat-botao { background: #0e639c; color: white; border: none; padding: 14px 18px; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 8px; }
+        .chat-janela { display: none; flex-direction: column; width: 340px; height: 450px; background: #18181c; border: 1px solid #2d2d34; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 20px rgba(0,0,0,0.7); }
+        .chat-cabecalho { background: #0e639c; color: white; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .chat-fechar { background: none; border: none; color: white; cursor: pointer; font-size: 16px; }
+        .chat-mensagens { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+        .msg { padding: 8px 12px; border-radius: 8px; max-width: 80%; line-height: 1.4; word-break: break-word; }
+        .msg.bot { background: #2d2d34; color: #e2e8f0; align-self: flex-start; }
+        .msg.user { background: #0e639c; color: white; align-self: flex-end; }
+        .msg.sistema { background: transparent; color: #64748b; font-style: italic; align-self: center; font-size: 11px; }
+        .chat-entrada { display: flex; border-top: 1px solid #2d2d34; background: #1e1e24; }
+        .chat-entrada input { flex: 1; background: transparent; border: none; padding: 12px; color: white; font-size: 13px; }
+        .chat-entrada button { margin: 0; width: auto; background: transparent; color: #0e639c; padding: 0 15px; font-size: 14px; font-weight: bold; }
+
+        .container-timer-cliente { display: none; background: #1e1e24; border: 2px solid #0e639c; border-radius: 8px; padding: 15px; margin-bottom: 20px; width: 100%; max-width: 650px; box-sizing: border-box; text-align: center; }
+        .cliente-relogio { font-size: 32px; font-family: monospace; font-weight: bold; color: #49e3c4; margin-top: 5px; }
+
+        .rodape-parceria { margin-top: auto; padding: 25px 0; width: 100%; max-width: 650px; text-align: center; border-top: 1px solid #2d2d34; }
+        .rodape-titulo { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 18px; font-weight: bold; }
+        .logos-flex { display: flex; justify-content: center; align-items: center; gap: 35px; }
+        .logo-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .img-logo { width: 45px; height: 45px; object-fit: contain; border-radius: 8px; filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.5)); transition: transform 0.2s; }
+        .img-logo:hover { transform: translateY(-3px); }
+        .logo-nome { font-size: 12px; color: #94a3b8; font-weight: 500; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div id="manutencao-screen"> Estamos em atualização...<br>Voltamos as 4:00 com na nova atualização!</div>
+
+<div class="container-timer-cliente" id="boxTimerCliente">
+    <div style="font-size: 14px; color: #94a3b8; font-weight: bold;">⏳ Tempo de Produção Estimado:</div>
+    <div class="cliente-relogio" id="clienteTimerDisplay">00:00:00</div>
+</div>
+"
+<div class="container" id="client-area">"
+    <h1>Peça seu Projeto de Site</h1>
+    
+    <div class="info-bloco">
+        <b style="color: #9cdcfe;">📋 Instruções:</b> Preencha seus dados de contato, selecione a categoria do seu negócio e detalhe as páginas desejadas.
+    </div>
+
+    <form id="formPedido" action="https://formsubmit.co/luizdavi10tn@gmail.com" method="POST">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="hidden" id="pagamentoEscolhido" name="Forma de Pagamento" value="PIX">
+
+        <label for="nome">Seu Nome:</label>
+        <input type="text" id="nome" name="nome" required>
+
+        <label for="email">Seu E-mail:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="tipo">Tipo de Site:</label>
+        <select id="tipo" name="tipo" required>
+            <option value="" disabled selected>Selecione uma opção de projeto...</option>
+            <option value="Convite Digital">Convite Digital (R$ 50,00)</option>
+            <option value="Sistema de Loja">Sistema de Loja (R$ 70,00)</option>
+            <option value="Landing Page">Landing Page Profissional (R$ 60,00)</option>
+            <option value="Portfólio Pessoal">Portfólio / Currículo Digital (R$ 50,00)</option>
+        </select>
+
+        <label for="detalhes">Detalhes do Pedido:</label>
+        <textarea id="detalhes" name="detalhes" required></textarea>
+
+        <button type="submit">Avançar para o Pagamento</button>
+    </form>
+
+    <div class="info-bloco" style="border-left: 3px solid #f44747;">
+        <b style="color: #f44747;">⚠️ Política de Reembolso:</b> Caso o projeto seja cancelado ou recusado em até 24 horas, o valor integral será estornado.
+    </div>
+</div>
+
+<div id="telaPagamento" class="tela-fixa">
+    <div class="modal">
+        <h2>💳 Escolha a Forma de Pagamento</h2>
+        <div class="abas-pagamento">
+            <button type="button" class="aba-btn ativo" id="btnAbaPix" onclick="mudarAbaPagamento('PIX')">📱 PIX</button>
+            <button type="button" class="aba-btn" id="btnAbaCredito" onclick="mudarAbaPagamento('CREDITO')">💳 Cartão</button>
+        </div>
+
+        <div id="conteudoPix" class="conteudo-pagamento" style="display: block;">
+            <p>Copie a chave Pix Copia e Cola:</p>
+            <div style="background: #000; padding: 12px; border-radius: 6px; word-break: break-all; color: #859900; font-family: monospace; font-size: 11px;">
+                00020126330014BR.GOV.BCB.PIX011114452628435520400005303986540550.005802BR5925Davi Luiz Soares dos Sant6009SAO PAULO62140510Ofisl9ofg96304C325
+            </div>
+        </div>
+
+        <div id="conteudoCredito" class="conteudo-pagamento">
+            <label>Número do Cartão:</label>
+            <input type="text" placeholder="0000 0000 0000 0000" style="color:#fff;">
+        </div>
+
+        <button type="button" style="background: #33a852;" onclick="finalizarEnvioEForm()">Confirmar e Enviar Pedido</button>
+    </div>
+</div>
+
+<div id="telaStatus" class="tela-fixa">
+    <div id="modalStatus" class="modal"></div>
+</div>
+
+<div class="chat-widget" id="chatWidget">
+    <button class="chat-botao" id="chatBotaoOpen" onclick="toggleChat(true)">💬 Tirar Dúvidas</button>
+    <div class="chat-janela" id="chatJanela">
+        <div class="chat-cabecalho">
+            <span>🤖 Assistente WebRequest</span>
+            <button class="chat-fechar" onclick="toggleChat(false)">✕</button>
+        </div>
+        <div class="chat-mensagens" id="chatMensagens">
+            <div class="msg bot">Olá! Como posso ajudar você hoje com seu site?</div>
+        </div>
+        <div class="chat-entrada">
+            <input type="text" id="chatInput" placeholder="Faça sua pergunta..." onkeypress="checarEnterChat(event)">
+            <button onclick="enviarMensagemChat()">Enviar</button>
+        </div>
+    </div>
+</div>
+
+<footer class="rodape-parceria">
+    <div class="rodape-titulo">Desenvolvido em Parceria</div>
+    <div class="logos-flex">
+        <div class="logo-item">
+            <img src="logo-seu-app.png" alt="WebRequest" class="img-logo" onerror="this.src='https://placehold.co/45x45/0e639c/ffffff?text=WR'">
+            <div class="logo-nome">WebRequest</div>
+        </div>
+        <span style="color: #3e3e42; font-size: 18px; font-weight: bold;">×</span>
+        <div class="logo-item">
+            <img src="https://lh3.googleusercontent.com/9Odb92jG_Y76OovHwV_P6AnP-Y2fA9z-A8Wf62hbywY5W_Xy6x0B7vO53C_bQ-Wp-w3F8v1n=w120" alt="Gemini AI" class="img-logo">
+            <div class="logo-nome">Gemini AI</div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    let intervaloTimerCliente = null;
+
+    // CONFIGURAÇÃO CENTRAL DE PRODUÇÃO: Detecta se está local ou na internet automaticamente
+    const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3000" 
+        : "https://SEU-BACKEND.onrender.com"; // <-- TROQUE PELO LINK QUE A RENDER TE DER
+
+    const API_URL = `${API_BASE}/api/pedidos`;
+
+    window.enviarMensagemChat = function() {
+        const input = document.getElementById('chatInput');
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        adicionarMensagem(texto, 'user');
+        input.value = '';
+
+        const msgIndicador = adicionarMensagem("Processando...", "sistema");
+
+        setTimeout(() => {
+            msgIndicador.remove();
+            const t = texto.toLowerCase();
+            let resposta = "Essa é uma ótima pergunta! Para alinhar isso no seu site, envie o formulário detalhando essa ideia no campo de especificações.";
+
+            if (t.includes('como funciona') || t.includes('ajuda')) {
+                resposta = "Você preenche o formulário com a sua ideia, faz o pagamento simulado e o desenvolvedor assume a produção diretamente pelo painel administrativo.";
+            } else if (t.includes('preço') || t.includes('valor')) {
+                resposta = "Preços fixos: Convite/Portfólio R$ 50, Landing Page R$ 60 e Sistema de Loja R$ 70.";
+            } else if (t.includes('prazo') || t.includes('tempo')) {
+                resposta = "O desenvolvimento inicia imediatamente assim que o desenvolvedor aceita o chamado no painel de controle.";
+            }
+
+            adicionarMensagem(resposta, 'bot');
+        }, 500);
+    }
+
+    function toggleChat(abrir) {
+        document.getElementById('chatBotaoOpen').style.display = abrir ? 'none' : 'flex';
+        document.getElementById('chatJanela').style.display = abrir ? 'flex' : 'none';
+    }
+
+    function checarEnterChat(e) { if (e.key === 'Enter') enviarMensagemChat(); }
+
+    function adicionarMensagem(texto, remetente) {
+        const divMsgs = document.getElementById('chatMensagens');
+        const novaMsg = document.createElement('div');
+        novaMsg.className = `msg ${remetente}`;
+        novaMsg.innerText = texto;
+        divMsgs.appendChild(novaMsg);
+        divMsgs.scrollTop = divMsgs.scrollHeight;
+        return novaMsg;
+    }
+
+    function mudarAbaPagamento(tipo) {
+        document.getElementById('pagamentoEscolhido').value = tipo;
+        if (tipo === 'PIX') {
+            document.getElementById('btnAbaPix').classList.add('ativo');
+            document.getElementById('btnAbaCredito').classList.remove('ativo');
+            document.getElementById('conteudoPix').style.display = 'block';
+            document.getElementById('conteudoCredito').style.display = 'none';
+        } else {
+            document.getElementById('btnAbaCredito').classList.add('ativo');
+            document.getElementById('btnAbaPix').classList.remove('ativo');
+            document.getElementById('conteudoPix').style.display = 'none';
+            document.getElementById('conteudoCredito').style.display = 'block';
+        }
+    }
+
+    function monitorarTimerCliente() {
+        clearInterval(intervaloTimerCliente);
+        const box = document.getElementById('boxTimerCliente');
+        const display = document.getElementById('clienteTimerDisplay');
+        const fim = localStorage.getItem('timer_fim_timestamp');
+
+        if (!fim) {
+            box.style.display = 'none';
+            return;
+        }
+
+        box.style.display = 'block';
+
+        function executingLoop() {
+            const restante = fim - Date.now();
+            if (restante <= 0) {
+                display.innerText = "TEMPO ESTIMADO CONCLUÍDO!";
+                clearInterval(intervaloTimerCliente);
+                return;
+            }
+
+            const horas = Math.floor(restante / (1000 * 60 * 60));
+            const minutos = Math.floor((restante % (1000 * 60 * 60)) / (1000 * 60));
+            const segundos = Math.floor((restante % (1000 * 60)) / 1000);
+
+            display.innerText = 
+                (horas < 10 ? "0" + horas : horas) + ":" + 
+                (minutos < 10 ? "0" + minutos : minutes) + ":" + 
+                (segundos < 10 ? "0" + segundos : segundos);
+        }
+
+        executingLoop();
+        intervaloTimerCliente = setInterval(executingLoop, 1000);
+    }
+
+    async function checarEstadoLocal() {
+        const manutencao = localStorage.getItem('modoManutencao') || 'desativado';
+        if (manutencao === 'ativado') {
+            document.getElementById('manutencao-screen').style.display = 'block';
+            document.getElementById('client-area').style.display = 'none';
+            document.getElementById('chatWidget').style.display = 'none';
+            document.getElementById('boxTimerCliente').style.display = 'none';
+            return;
+        } else {
+            document.getElementById('manutencao-screen').style.display = 'none';
+            document.getElementById('client-area').style.display = 'block';
+            document.getElementById('chatWidget').style.display = 'block';
+        }
+
+        monitorarTimerCliente();
+
+        const pedidoId = localStorage.getItem('meu_pedido_id');
+        const modal = document.getElementById('modalStatus');
+        const telaStatus = document.getElementById('telaStatus');
+
+        if (pedidoId) {
+            try {
+                const resposta = await fetch(`${API_URL}/${pedidoId}`);
+                if (resposta.ok) {
+                    const pedidoConstatado = await resposta.json();
+                    
+                    if (pedidoConstatado.status === 'finalizado') {
+                        telaStatus.style.display = 'flex';
+                        modal.style.borderColor = "#49e3c4";
+                        modal.innerHTML = `<h2>🎉 Seu Site Está Pronto!</h2><p>O projeto foi concluído com sucesso!</p><button onclick="resetarTudo()">Fazer Novo Pedido</button>`;
+                        return;
+                    } else if (pedidoConstatado.status === 'recusado') {
+                        telaStatus.style.display = 'flex';
+                        modal.style.borderColor = "#f44747";
+                        modal.innerHTML = `<h2>❌ Pedido Recusado</h2><p>Não foi possível atender sua solicitação no momento.</p><button onclick="resetarTudo()" style="background:#f44747;">Voltar</button>`;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('Aguardando servidor...');
+            }
+        }
+
+        telaStatus.style.display = 'none';
+    }
+
+    document.getElementById('formPedido').addEventListener('submit', function(event) {
+        event.preventDefault();
+        document.getElementById('telaPagamento').style.display = 'flex';
+    });
+
+    async function finalizarEnvioEForm() {
+        const nomeDigitado = document.getElementById('nome').value;
+        const emailDigitado = document.getElementById('email').value;
+        const tipoSelecionado = document.getElementById('tipo').value;
+        const detalhesDigitados = document.getElementById('detalhes').value;
+        const pagamentoEscolhido = document.getElementById('pagamentoEscolhido').value;
+
+        const dadosPedido = {
+            nome: nomeDigitado,
+            email: emailDigitado,
+            tipoSite: tipoSelecionado,
+            pagamento: pagamentoEscolhido.toLowerCase(),
+            descricao: detalhesDigitados,
+            valor: 50
+        };
+
+        try {
+            const resposta = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dadosPedido)
+            });
+
+            const resultado = await resposta.json();
+
+            if (resultado.success) {
+                localStorage.setItem('meu_pedido_id', resultado.pedidoId);
+                localStorage.setItem('statusPix', resultado.status);
+                document.getElementById('telaPagamento').style.display = 'none';
+                document.getElementById('formPedido').submit();
+            } else {
+                alert('Erro ao criar pedido: ' + resultado.mensagem);
+            }
+        } catch (erro) {
+            alert('Não foi possível conectar ao servidor backend!');
+        }
+    }
+
+    function resetarTudo() {
+        localStorage.removeItem('meu_pedido_id');
+        localStorage.removeItem('statusPix');
+        localStorage.removeItem('timer_fim_timestamp');
+        document.getElementById('telaStatus').style.display = 'none';
+        document.getElementById('formPedido').reset();
+        window.dispatchEvent(new Event('storage'));
+    }
+
+    window.addEventListener('storage', checarEstadoLocal);
+    window.addEventListener('DOMContentLoaded', () => {
+        checarEstadoLocal();
+        setInterval(checarEstadoLocal, 3000);
+    });
+</script>
+</body>
+</html>
